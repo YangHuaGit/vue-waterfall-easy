@@ -115,11 +115,12 @@
   .vue-waterfall-easy-scroll(ref="scrollEl")
     slot(name="waterfall-head")
     .vue-waterfall-easy(:style="isMobile? '' :{width: colWidth*cols+'px',left:'50%', marginLeft: -1*colWidth*cols/2 +'px'}")
-      .img-box(
-        v-for="(v,i) in imgsArr_c",
-        :class="[cardAnimationClass, {__err__: v._error}]"
-        :style="{padding: (isMobile ? mobileGap : gap)/2+'px', width: isMobile ? '' : colWidth+'px'}"
-      )
+      <!--.img-box(-->
+        <!--v-for="(v,i) in imgsArr_c",-->
+        <!--:class="[cardAnimationClass, {__err__: v._error}]"-->
+        <!--:style="{padding: (isMobile ? mobileGap : gap)/2+'px', width: isMobile ? '' : colWidth+'px'}"-->
+      <!--)-->
+
         component.img-inner-box(
           :is="isRouterLink  && linkRange=='card' ? 'router-link' : 'alink'",
           :data-index="i",
@@ -321,6 +322,9 @@ export default {
     // ==2== 计算cols
     calcuCols() { // 列数初始化
       var waterfallWidth = this.width ? this.width : window.innerWidth
+      var scrollEl = this.$el.querySelector('.vue-waterfall-easy-scroll')
+      var scrollElWidth = scrollEl.clientWidth
+      waterfallWidth = scrollElWidth
       var cols = parseInt(waterfallWidth / this.colWidth)
       cols = cols === 0 ? 1 : cols
       return this.isMobile
@@ -328,7 +332,7 @@ export default {
         : (cols > this.maxCols ? this.maxCols : cols)
     },
     // ==3== waterfall布局
-    waterfall() {
+    async waterfall() {
       if (!this.imgBoxEls) return
       // console.log('waterfall')
       var top, left, height, colWidth = this.isMobile ? this.imgBoxEls[0].offsetWidth : this.colWidth
@@ -365,8 +369,10 @@ export default {
         this.cols = this.calcuCols()
         if (old === this.cols) return // 列数不变直接退出
         this.beginIndex = 0 // 开始排列的元素索引
-        this.waterfall()
-        if (this.over) this.setOverTipPos()
+        this.waterfall().then(()=>{
+          if (this.over) this.setOverTipPos()
+        })
+
       })
     },
 
@@ -388,7 +394,10 @@ export default {
       this.$refs.scrollEl.removeEventListener('scroll', this.scrollFn)
       this.isPreloading = false
       this.over = true
-      this.setOverTipPos()
+      this.$nextTick(()=>{
+        this.setOverTipPos()
+      })
+
     },
     setOverTipPos() {
       var maxHeight = Math.max.apply(null, this.colsHeightArr)
@@ -443,6 +452,14 @@ export default {
       var scrollEl = this.$el.querySelector('.vue-waterfall-easy-scroll')
       var scrollbarWidth = scrollEl.offsetWidth - scrollEl.clientWidth
       this.$el.querySelector('.loading').style.marginLeft = -scrollbarWidth / 2 + 'px'
+    },
+    resize(){
+      var old = this.cols
+      this.cols = this.calcuCols()
+      if (old === this.cols) return // 列数不变直接退出
+      this.beginIndex = 0 // 开始排列的元素索引
+      this.waterfall()
+      if (this.over) this.setOverTipPos()
     },
     reset() {
       this.imgsArr_c = []
